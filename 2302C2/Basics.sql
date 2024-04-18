@@ -129,7 +129,7 @@ FOREIGN KEY (deptId) REFERENCES Departments(deptId),
 );
 
 INSERT INTO Employees(empName,designation,salary,city,deptId) VALUES
-('Jameel','guard',78788, 'Lahore',null);
+('Jameel','guard',78788, 'Lahore',2),
 ('OWAIS','CO-ORDINATOR',56565, 'LAHORE',2),
 ('AHMED','SRO',898988, 'Istanbul',4),
 ('EBAD','Admin Assistant',78787, 'Sogut',1),
@@ -185,11 +185,151 @@ DELETE FROM Employees WHERE id=6;
 -- REVOKE (to take back the given permission)
  REVOKE DELETE on dbo.Employees FROM EMP_CLERK;
 
+ -- 2/4/24
+ -- Stored Procedures
+CREATE PROCEDURE ShowEmp 
+AS
+BEGIN
+SELECT * from Employees 
+END;
+
+ShowEmp;
+
+ALTER PROCEDURE ShowEmp 
+AS
+BEGIN
+SELECT * from Employees Where city='Lahore'
+END;
+
+CREATE PROCEDURE AddEmp @Name varchar(255), @desig varchar(55) , @sal int,@city varchar(55), @dId int
+AS
+BEGIN
+Insert Into Employees Values(@Name, @desig, @sal, @city, @dId)
+SELECT * from Employees 
+END;
+
+AddEmp @Name='Faris',@desig='Web designer', @sal=7575, @city='Larkana', @dId=1;
+
+drop procedure ShowEmp;
+
+-- indexes 
+
+create index empname_index
+On Employees(empName,salary);
+
+select * from Employees where empName='haris';
+
+drop index employees.empname_index;
+
+-- Triggers
+
+ -- for
+ CREATE TRIGGER AddEmp_trigger 
+ On Employees
+ for INSERT
+ as
+ BEGIN
+ print('a new employee added successfully.')
+ END;
+
+ INSERT INTO Employees(empName,designation,salary,city,deptId) VALUES
+('Hussain ','developer',78788, 'jammu',2);
 
 
+ -- after
+ ALTER TRIGGER AddEmp_trigger 
+ On Employees
+ for INSERT
+ as
+ BEGIN
+SELECT * FROM inserted;
+ END;
+
+ --Creating audit table
+ CREATE TABLE EmpLogs(
+ logid int Primary key identity(1,1),
+ ActionPerformed nvarchar(255)
+ );
+ SELECT * FROM EmpLogs;
 
 
+ SELECT * into Test from Employees;
+ SELECT * From Test;
+
+ -- Maintaining logs on tables
+
+  create TRIGGER AddEmp_trigger 
+ On Employees
+ AFTER INSERT
+ as
+ BEGIN
+DECLARE @Id int, @name varchar(50)
+SELECT @Id=id, @name=empName FROM inserted
+INSERT INTO EmpLogs VALUES(@name+' having Id = '+ CAST(@Id as varchar(6)) +' is added at '+ cast(GETDATE() as varchar(30)))
+ END;
 
 
+ -- instead of
+
+ SELECT * from Employees;
+ Alter TABLE Employees ADD emp_status int default(1) not null;
 
 
+ CREATE Trigger Soft_Delete
+ On Employees
+ INSTEAD OF DELETE
+ AS
+ BEGIN
+ DECLARE @ID int
+ SELECT @ID=id from Deleted
+ Update Employees set emp_status=0 where id=@ID
+ END;
+
+
+ DELETE from Employees where id=8;
+
+
+ -- Update Trigger
+ ALTER Trigger Update_Employees
+ On Employees
+ for Update
+ as
+ begin
+DECLARE @Id int
+DECLARE @Newname varchar(60), @Oldname varchar(60)
+DECLARE @Newsalary int,  @Oldsalary int
+DECLARE @NewDesignation varchar(60),@OldDesignation varchar(60)
+DECLARE @Newdeptid int,  @Olddeptid int
+DECLARE @Newcity varchar(60), @Oldcity varchar(60)
+DECLARE @AuditString varchar(255)
+
+SELECT * into #Temptable from inserted
+WHILE(exists (SELECT id from #Temptable))
+begin
+SELECT @Id=id, @Newname=empName, @Newsalary=salary, @NewDesignation=designation,@Newcity=city,@Newdeptid=deptId FROM #Temptable
+SELECT  @Oldname=empName, @Oldsalary=salary, @OldDesignation=designation,@Oldcity=city,@Olddeptid=deptId FROM deleted where id=@Id
+SET @AuditString =''
+SET @AuditString ='An employee having id = '+ CAST(@Id as varchar(6))+' on '+  CAST(GETDATE() as varchar(30))+' is changed '
+if(@Oldname <> @Newname)
+SET @AuditString = @AuditString + ' its name from '+@Oldname +' to '+ @Newname
+
+if(@Oldsalary <> @Newsalary)
+SET @AuditString = @AuditString + ' its salary from '+CAST(@Oldsalary as varchar(10)) +' to '+CAST(@Newsalary as varchar(10))
+
+if(@OldDesignation <> @NewDesignation)
+SET @AuditString = @AuditString + ' its designation from '+@OldDesignation +' to '+ @NewDesignation
+
+if(@Oldcity <> @Newcity)
+SET @AuditString = @AuditString + ' its city from '+@Oldcity +' to '+ @Newcity
+
+if(@Olddeptid <> @Newdeptid)
+SET @AuditString = @AuditString + ' its deptid from '+CAST(@Olddeptid as varchar(10)) +' to '+CAST(@Newdeptid as varchar(10))
+ Insert into Emplogs values(@AuditString)
+ DELETE FROM #Temptable where id=@Id
+end
+ end;
+
+
+ select * from Employees;
+ update Employees set city='karachi' where id > 4;
+ select * from Emplogs;

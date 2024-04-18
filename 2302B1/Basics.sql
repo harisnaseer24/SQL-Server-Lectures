@@ -221,3 +221,102 @@ on Employees(empName);
 
  CREATE INDEX empName_index
 on Employees(empName,designation);
+
+-- TRIGGERs
+-- for 
+CREATE TRIGGER ADD_EMP 
+ON Employees
+for insert
+AS
+BEGIN
+print('Employee inserted successfully.')
+END;
+
+-- after
+ALTER TRIGGER ADD_EMP 
+ON Employees
+AFTER insert
+AS
+BEGIN
+select * from inserted;
+END;
+
+--maintaining logs
+ALTER TRIGGER ADD_EMP 
+ON Employees
+AFTER insert
+AS
+BEGIN
+DECLARE @id int, @name varchar(50)
+select @id=Id,@name=empName from inserted;
+INSERT INTO EmpAudit VALUES(@name+' having id = '+ CAST(@id as varchar(6))+ 
+' has been added as an employee at '+ CAST(GETDATE() as varchar(30)))
+END;
+
+INSERT INTO Employees(empName,salary,designation,city,deptId) VALUES('Fakhar',455000,'DevOps Engineer','Mardan',3);
+
+-- Creating new table for logs
+CREATE TABLE EmpAudit (
+Id int Primary key identity(1,1),
+LogInfo nvarchar(255) not null 
+);
+
+SELECT * FROM EmpAudit;
+CREATE Trigger Update_emp_trigger
+On Employees
+for Update
+AS
+BEGIN
+DECLARE @Id int
+DECLARE @Newname varchar(60), @Oldname varchar(60)
+DECLARE @Newsalary int,  @Oldsalary int
+DECLARE @NewDesignation varchar(60),@OldDesignation varchar(60)
+DECLARE @Newdeptid int,  @Olddeptid int
+DECLARE @AuditString varchar(255)
+SELECT * into #Temptable from inserted
+WHILE(Exists(Select Id from #Temptable))
+BEGIN
+SELECT @Id=Id,@Newname=empName, @Newsalary=salary, @NewDesignation=designation, @Newdeptid=deptId from #Temptable
+SELECT @Oldname=empName, @Oldsalary=salary, @OldDesignation=designation, @Olddeptid=deptId from deleted where Id=@Id;
+SET @AuditString =''
+SET @AuditString ='An employee having id = '+ CAST(@Id as varchar(6))+' is changed on '+ CAST(GETDATE() as varchar(30))
+if(@Newname <> @Oldname)
+SET @AuditString= @AuditString + ' its name from '+@Oldname +' to '+ @Newname
+if(@Newsalary <> @Oldsalary)
+SET @AuditString= @AuditString + ' its salary from '+CAST(@Oldsalary as varchar(10)) +' to '+ CAST(@Newsalary as varchar(10)) 
+if(@Newdeptid <> @Olddeptid)
+SET @AuditString= @AuditString + ' its deptId from '+CAST(@Olddeptid as varchar(10)) +' to '+ CAST(@Newdeptid as varchar(10)) 
+if(@NewDesignation <> @OldDesignation)
+SET @AuditString= @AuditString + ' its salary from '+ @OldDesignation +' to '+@NewDesignation
+Insert into EmpAudit Values(@AuditString)
+DELETE From #Temptable where Id= @Id
+END
+END;
+SELECT * from Employees;
+
+UPDATE Employees SET empName='Zaheer Kalia',designation='Marketing Head',deptId=4 where id=9;
+
+-- Instead of Triggers
+Alter TABLE Employees Add emp_status int not null default(1);
+
+ALTER Trigger Soft_Delete
+On Employees
+INSTEAD of DELETE
+AS
+BEGIN
+DECLARE @Id int
+
+SELECT * into #Temptable from DELETED
+While(exists(SELECT id from #Temptable))
+BEGIN
+SELECT top 1 @Id=id from  #Temptable
+Update Employees set emp_status=0 where id=@Id;
+DELETE from #Temptable where id=@Id
+END
+
+Update Employees set emp_status=0 where id=@Id;
+
+END;
+
+-- DELETE from  Employees where id>5;
+DELETE from  Employees where empName='Waleed';
