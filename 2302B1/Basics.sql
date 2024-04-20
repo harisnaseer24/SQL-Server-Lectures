@@ -320,3 +320,6 @@ END;
 
 -- DELETE from  Employees where id>5;
 DELETE from  Employees where empName='Waleed';
+
+
+-- Transactions ():

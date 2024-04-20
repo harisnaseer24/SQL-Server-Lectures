@@ -333,3 +333,34 @@ end
  select * from Employees;
  update Employees set city='karachi' where id > 4;
  select * from Emplogs;
+
+ -- Transactions 
+ -- ddl- data definition language (create , alter, drop)
+ -- dml-data manipulation language (insert,update,delete, select)
+ -- dcl-data control languages (grant/revoke)
+ -- tcl- transaction control language. (ROLLBACK/ COMMIT)
+
+ -- ACID properties.
+ 
+-- A => Atomicity -- all the steps are fully completed or not a single step will execute.
+-- C => Consistency -- all the nodes in a network should be aware of the transaction.
+-- I => Isolation -- one transaction's info should not be known to another transaction.
+-- D => Durability -- changes after transaction should be saved.
+
+-- Integrity
+Begin Transaction
+Update Employees set empName='Khurram' where id= 1;
+Commit Transaction;-- save changes
+
+Rollback Transaction;-- wapis
+
+BEGIN TRANSACTION
+BEGIN try 
+Update Employees set empName='chakwal' where id= 1/0;
+print('Commited Successfully.')
+COMMIT TRANSACTION
+End try
+BEGIN catch
+print('Rolled back Successfully.')
+Rollback Transaction
+END catch;
